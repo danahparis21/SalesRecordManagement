@@ -42,7 +42,7 @@ public class AdminDashboard extends JFrame {
         dataAnalyticsButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                openProductManagement();  
+                openDataAnalytics();  
             }
         });
         
@@ -70,11 +70,11 @@ public class AdminDashboard extends JFrame {
     }
 
     
-    //public void openDataAnalytics() {
-        // Open a new window or panel for Data Analytics
-       // DataAnalyticsWindow analyticsWindow = new DataAnalyticsWindow();
-      //  analyticsWindow.setVisible(true);
-    //}
+    public void openDataAnalytics() {
+        
+       DataAnalytics analyticsWindow = new DataAnalytics();
+       analyticsWindow.setVisible(true);
+    }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
