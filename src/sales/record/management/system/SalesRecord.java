@@ -1,9 +1,14 @@
 package sales.record.management.system;
 
+import com.toedter.calendar.JDateChooser;
 import java.sql.*;
 import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.time.LocalDate;
@@ -17,11 +22,13 @@ public class SalesRecord extends JFrame {
     private int loggedInSalespersonID;  
     private int selectedSalesID;  
     private JComboBox<String> dateFilterComboBox;
+    private JDateChooser startDateChooser, endDateChooser;
+    private JTextField salespersonFilterField, customerFilterField, productNameField, productPriceField;
 
     public SalesRecord(int salespersonID) {
         loggedInSalespersonID = salespersonID;  
         setTitle("Sales Record Management");
-        setSize(800, 600);
+        setSize(1920, 1080);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         getContentPane().setBackground(Color.WHITE);
@@ -40,6 +47,22 @@ public class SalesRecord extends JFrame {
         productIDField = new JTextField();
         productIDField.setBounds(150, 50, 200, 30);
         add(productIDField);
+        
+        JLabel productNameLabel = new JLabel("Product Name:");
+        productNameLabel.setBounds(390, 50, 100, 25);
+        add(productNameLabel);
+
+        productNameField = new JTextField();
+        productNameField.setBounds(480, 50, 200, 30);
+        add(productNameField);
+        
+        JLabel productPriceLabel = new JLabel("Price (Php):");
+        productPriceLabel.setBounds(390, 100, 100, 25);
+        add(productPriceLabel);
+
+        productPriceField = new JTextField();
+        productPriceField.setBounds(480, 100, 200, 30);
+        add(productPriceField);
 
         JLabel quantityLabel = new JLabel("Quantity Sold:");
         quantityLabel.setBounds(50, 100, 100, 25);
@@ -55,59 +78,76 @@ public class SalesRecord extends JFrame {
 
         totalPriceField = new JTextField();
         totalPriceField.setBounds(150, 150, 200, 30);
-        totalPriceField.setEditable(false); // Not editable, it will be calculated
+        totalPriceField.setEditable(false); // automatic calculated
         add(totalPriceField);
 
         addSaleButton = new JButton("Add Sale");
-        addSaleButton.setBounds(170, 200, 150, 40);
+        addSaleButton.setBounds(450, 220, 180, 60);
+        styleButton(addSaleButton);
         add(addSaleButton);
 
         // Buttons
         updateSaleButton = new JButton("Update Sale");
-        updateSaleButton.setBounds(50, 250, 150, 40);
+        updateSaleButton.setBounds(680, 220, 180, 60);
         updateSaleButton.setEnabled(false); 
+        styleButton(updateSaleButton);
         add(updateSaleButton);
 
         deleteSaleButton = new JButton("Delete Sale");
-        deleteSaleButton.setBounds(250, 250, 150, 40);
+        deleteSaleButton.setBounds(900, 220, 180, 60);
         deleteSaleButton.setEnabled(false); 
+        styleButton(deleteSaleButton);
         add(deleteSaleButton);
 
         // Product Filter
         JLabel productFilterLabel = new JLabel("Filter by Product ID:");
-        productFilterLabel.setBounds(400, 50, 150, 25);
+        productFilterLabel.setBounds(700, 50, 150, 25);
         add(productFilterLabel);
 
         productFilterField = new JTextField();
-        productFilterField.setBounds(550, 50, 200, 30);
+        productFilterField.setBounds(850, 50, 200, 30);
         add(productFilterField);
 
         // Date Filter
         JLabel dateFilterLabel = new JLabel("Filter by Date:");
-        dateFilterLabel.setBounds(400, 100, 100, 25);
+        dateFilterLabel.setBounds(700, 100, 100, 25);
         add(dateFilterLabel);
 
         String[] dateFilterOptions = {"All", "Today", "This Week", "This Month"};
         dateFilterComboBox = new JComboBox<>(dateFilterOptions);
-        dateFilterComboBox.setBounds(550, 100, 200, 30);
+        dateFilterComboBox.setBounds(850, 100, 200, 30);
         add(dateFilterComboBox);
+        
+        // Salesperson Filter
+        JLabel salespersonLabel = new JLabel("Filter by Salesperson ID:");
+        salespersonLabel.setBounds(700, 150, 150, 25);
+        add(salespersonLabel);
+
+        salespersonFilterField = new JTextField();
+        salespersonFilterField.setBounds(850, 150, 200, 30);
+        add(salespersonFilterField);
 
         
         filterButton = new JButton("Apply Filter");
-        filterButton.setBounds(550, 150, 150, 40);
+        filterButton.setBounds(1080, 135, 150, 40);
+        styleButton(filterButton);
         add(filterButton);
         
        
         logoutButton = new JButton("Logout");
-        logoutButton.setBounds(600, 520, 150, 30);
+        logoutButton.setBounds(1300, 10, 150, 30);
         add(logoutButton);
 
         
         // Table 
-        tableModel = new DefaultTableModel(new String[]{"Sales ID", "Product ID", "Quantity Sold", "Total Price", "Sale Date"}, 0);
+        tableModel = new DefaultTableModel(new String[]{"Sales ID", "Product ID", "Product Name", "Quantity Sold", "Total Price", "Sale Date", "Salesperson ID", "Product Price"}, 0);
+
         salesTable = new JTable(tableModel);
+        salesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        salesTable.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        salesTable.setRowHeight(30); 
         JScrollPane scrollPane = new JScrollPane(salesTable);
-        scrollPane.setBounds(50, 300, 700, 200);
+        scrollPane.setBounds(150, 350, 1200, 400);
         add(scrollPane);
         loadSalesData();  
 
@@ -157,8 +197,39 @@ public class SalesRecord extends JFrame {
 
                 
                 productIDField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 1)));
-                quantityField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 2)));
-                totalPriceField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 3)));
+                productNameField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 2)));
+                quantityField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 3)));
+                totalPriceField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 4)));
+                productPriceField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 7)));
+            }
+        });
+        
+    }
+    
+    private void styleButton(JButton button) {
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setBackground(Color.decode("#4CAF50"));
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder());
+        button.setPreferredSize(new Dimension(150, 40));
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.decode("#e1e1e1")),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
+
+        // Hover effect
+        Color defaultBackground = button.getBackground();
+        Color hoverBackground = Color.decode("#45a049"); 
+
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(hoverBackground);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(defaultBackground);
             }
         });
     }
@@ -178,7 +249,7 @@ public class SalesRecord extends JFrame {
                 ResultSet rs = stmt.executeQuery();
                 if (rs.next()) {
                     productPrice = rs.getDouble("price");
-                    currentStock = rs.getInt("stock");  // Get the current stock of the product
+                    currentStock = rs.getInt("stock");  
                 }
             } catch (SQLException ex) {
                 ex.printStackTrace();
@@ -208,7 +279,7 @@ public class SalesRecord extends JFrame {
            
             String updateStockSql = "UPDATE products SET stock = stock - ? WHERE id = ?";
             PreparedStatement updateStmt = conn2.prepareStatement(updateStockSql);
-            updateStmt.setInt(1, quantity);  // Subtract the sold quantity from the stock
+            updateStmt.setInt(1, quantity);  
             updateStmt.setInt(2, productID);
             updateStmt.executeUpdate();
 
@@ -218,6 +289,7 @@ public class SalesRecord extends JFrame {
             e.printStackTrace();
         }
 }
+    
 
 
     private void updateSalesRecord() {
@@ -242,7 +314,7 @@ public class SalesRecord extends JFrame {
                
                 String selectOldQuantitySql = "SELECT quantity FROM sales WHERE id = ?";
                 PreparedStatement stmt2 = conn.prepareStatement(selectOldQuantitySql);
-                stmt2.setInt(1, selectedSalesID);  // selectedSalesID is the current sales record ID
+                stmt2.setInt(1, selectedSalesID);  
                 ResultSet rs2 = stmt2.executeQuery();
                 if (rs2.next()) {
                     oldQuantity = rs2.getInt("quantity");
@@ -286,11 +358,11 @@ public class SalesRecord extends JFrame {
 
     private void deleteSalesRecord() {
         try {
-            // Get product ID and quantity sold before deletion
+           
             String selectSaleSql = "SELECT product_id, quantity FROM sales WHERE id = ?";
             Connection conn = Database.connect();
             PreparedStatement stmt = conn.prepareStatement(selectSaleSql);
-            stmt.setInt(1, selectedSalesID);  // Get the selected sales record
+            stmt.setInt(1, selectedSalesID);  
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
@@ -300,7 +372,7 @@ public class SalesRecord extends JFrame {
                
                 String updateStockSql = "UPDATE products SET stock = stock + ? WHERE id = ?";
                 PreparedStatement stmt2 = conn.prepareStatement(updateStockSql);
-                stmt2.setInt(1, quantitySold);  // Increment stock by the sold quantity
+                stmt2.setInt(1, quantitySold);  
                 stmt2.setInt(2, productID);
                 stmt2.executeUpdate();
             }
@@ -321,50 +393,90 @@ public class SalesRecord extends JFrame {
 
 
     private void loadSalesData() {
-        String productFilter = productFilterField.getText();
-        String dateFilter = (String) dateFilterComboBox.getSelectedItem();
-        String sql = "SELECT * FROM sales WHERE salesperson_id = ?";
+    tableModel.setRowCount(0); 
 
-        // Apply filters
-        if (!productFilter.isEmpty()) {
-            sql += " AND product_id = ?";
-        }
-        if (dateFilter.equals("Today")) {
-            sql += " AND DATE(sale_date) = CURDATE()";
-        } else if (dateFilter.equals("This Week")) {
-            sql += " AND YEARWEEK(sale_date, 1) = YEARWEEK(CURDATE(), 1)";
-        } else if (dateFilter.equals("This Month")) {
-            sql += " AND MONTH(sale_date) = MONTH(CURDATE())";
+    Connection conn = Database.connect();
+    if (conn == null) {
+        JOptionPane.showMessageDialog(this, "Database connection failed.");
+        return;
+    }
+
+    try {
+       
+        StringBuilder sql = new StringBuilder("SELECT s.id, s.product_id, p.name AS product_name, p.price AS product_price, s.quantity, s.total_price, s.sale_date, s.salesperson_id " +
+                                             "FROM sales s " +
+                                             "JOIN products p ON s.product_id = p.id " +
+                                             "WHERE 1=1");
+
+     
+        if (!productFilterField.getText().trim().isEmpty()) {
+            sql.append(" AND s.product_id = ?");
         }
 
-        // Clear the existing data in the table
-        tableModel.setRowCount(0);
+
+        if (!salespersonFilterField.getText().trim().isEmpty()) {
+            sql.append(" AND s.salesperson_id = ?");
+        }
+
+
+        String selectedDateFilter = dateFilterComboBox.getSelectedItem().toString();
+        if (!selectedDateFilter.equals("All")) {
+            sql.append(" AND s.sale_date >= ? AND s.sale_date <= ?");
+        }
+
+        PreparedStatement stmt = conn.prepareStatement(sql.toString());
+        int paramIndex = 1;
 
         
-        try {
-            Connection conn = Database.connect();
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setInt(1, loggedInSalespersonID);
-
-            if (!productFilter.isEmpty()) {
-                stmt.setInt(2, Integer.parseInt(productFilter));  
-            }
-
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                Object[] row = new Object[]{
-                    rs.getInt("id"),
-                    rs.getInt("product_id"),
-                    rs.getInt("quantity"),
-                    rs.getDouble("total_price"),
-                    rs.getDate("sale_date")
-                };
-                tableModel.addRow(row);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        if (!productFilterField.getText().trim().isEmpty()) {
+            stmt.setInt(paramIndex++, Integer.parseInt(productFilterField.getText().trim()));
         }
+
+        if (!salespersonFilterField.getText().trim().isEmpty()) {
+            stmt.setInt(paramIndex++, Integer.parseInt(salespersonFilterField.getText().trim()));
+        }
+
+        // Date filter 
+        if (!selectedDateFilter.equals("All")) {
+            LocalDate now = LocalDate.now();
+            LocalDate startDate = null, endDate = now;
+
+            switch (selectedDateFilter) {
+                case "Today":
+                    startDate = now;
+                    break;
+                case "This Week":
+                    startDate = now.minusDays(now.getDayOfWeek().getValue() - 1);
+                    break;
+                case "This Month":
+                    startDate = now.withDayOfMonth(1);
+                    break;
+            }
+
+            stmt.setDate(paramIndex++, java.sql.Date.valueOf(startDate));
+            stmt.setDate(paramIndex++, java.sql.Date.valueOf(endDate));
+        }
+
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+           
+            tableModel.addRow(new Object[]{
+                rs.getInt("id"),                  // Sales ID
+                rs.getInt("product_id"),          // Product ID
+                rs.getString("product_name"),     // Product Name
+                rs.getInt("quantity"),            // Quantity Sold
+                rs.getDouble("total_price"),      // Total Price
+                rs.getDate("sale_date"),          // Sale Date
+                rs.getInt("salesperson_id"),      // Salesperson ID
+                rs.getDouble("product_price")     // Product Price
+            });
+
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
     }
+}
+
     private void logout() {
         
         dispose();
