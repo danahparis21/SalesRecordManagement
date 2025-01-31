@@ -14,6 +14,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.*;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -29,7 +30,7 @@ public class DataAnalytics extends JFrame {
 
     public DataAnalytics() {
         setTitle("Sales Dashboard");
-        setSize(1920, 1080);  // Increased size for chart space
+        setSize(1920, 1080);  
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(null);
         getContentPane().setBackground(Color.WHITE);
@@ -63,7 +64,7 @@ public class DataAnalytics extends JFrame {
         calculateButton.setBounds(140, 100, 200, 30);
         add(calculateButton);
 
-        resultLabel = new JLabel("Total Revenue: Php 0.00");
+        resultLabel = new JLabel("Total Revenue: ₱ 0.00");
         resultLabel.setBounds(140, 140, 250, 25);
         add(resultLabel);
 
@@ -72,7 +73,7 @@ public class DataAnalytics extends JFrame {
         add(topProductsLabel);
 
         topProductsArea = new JTextArea();
-        topProductsArea.setBounds(20, 210, 550, 100);
+        topProductsArea.setBounds(20, 210, 450, 100);
         topProductsArea.setEditable(false);
         add(topProductsArea);
 
@@ -81,7 +82,7 @@ public class DataAnalytics extends JFrame {
         add(topSalespersonLabel);
 
         topSalespersonArea = new JTextArea();
-        topSalespersonArea.setBounds(20, 350, 550, 50);
+        topSalespersonArea.setBounds(20, 350, 450, 50);
         topSalespersonArea.setEditable(false);
         add(topSalespersonArea);
 
@@ -89,7 +90,7 @@ public class DataAnalytics extends JFrame {
         backButton.setBounds(1200, 20, 150, 30);
         add(backButton);
         
-        // Add buttons for daily, weekly, monthly sales trends
+        
         dailyButton = new JButton("Daily Sales");
         dailyButton.setBounds(20, 420, 120, 30);
         add(dailyButton);
@@ -104,7 +105,7 @@ public class DataAnalytics extends JFrame {
 
         // Panel for displaying chart
         chartPanel = new JPanel();
-        chartPanel.setBounds(20, 460, 740, 300);
+        chartPanel.setBounds(500, 300, 640, 300);
         add(chartPanel);
 
         // Inventory Insights Section
@@ -131,7 +132,7 @@ public class DataAnalytics extends JFrame {
             String startDate = startDateField.getText();
             String endDate = endDateField.getText();
             double revenue = getTotalSalesRevenue(startDate, endDate);
-            resultLabel.setText("Total Revenue: Php " + revenue);
+            resultLabel.setText("Total Revenue: ₱ " + revenue);
             displayTopSellingProducts(startDate, endDate);
             displayTopSalesperson(startDate, endDate);
             displayLowStockProducts();  // Display low stock products
@@ -217,7 +218,7 @@ public class DataAnalytics extends JFrame {
 
             if (rs.next()) {
                 result.append("Name: ").append(rs.getString("salesperson_name"))
-                      .append("\nTotal Sales: Php ")
+                      .append("\nTotal Sales: ₱ ")
                       .append(rs.getDouble("total_sales"));
             }
         } catch (SQLException e) {
@@ -227,95 +228,147 @@ public class DataAnalytics extends JFrame {
         topSalespersonArea.setText(result.toString());
     }
 
-    // New method to display low stock products
+   
     public void displayLowStockProducts() {
         String query = "SELECT name, stock FROM products WHERE stock < 10";  
-
         StringBuilder result = new StringBuilder();
 
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             ResultSet rs = pstmt.executeQuery();
 
-            while (rs.next()) {
-                result.append(rs.getString("name")).append(" - Stock: ")
-                      .append(rs.getInt("stock")).append("\n");
+            if (!rs.isBeforeFirst()) { // Check if result set is empty
+                result.append("No products are low in stock.");
+            } else {
+                while (rs.next()) {
+                    result.append(rs.getString("name")).append(" - Stock: ")
+                          .append(rs.getInt("stock")).append("\n");
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            result.append("Error retrieving low-stock products.");
         }
 
         lowStockArea.setText(result.toString());
     }
 
     
-        public void updateSalesTrend(String filter) {
-            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+    public void updateSalesTrend(String filter) {
+    DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+    String query = "";
 
-            String query = "";
-            String category = "Total Sales";
-            String dateField = "sale_date";
-            String dateFormat = "";
+    // Get today's date in the correct format for comparison
+    String todayFormatted = new SimpleDateFormat("MMM dd").format(new Date());
+    System.out.println("Today's date formatted: " + todayFormatted);  // Debugging today’s date format
 
-            switch (filter) {
-                case "daily":
-                    query = "SELECT DATE(sale_date) AS day, SUM(total_price) AS total_sales FROM sales GROUP BY DATE(sale_date)";
-                    break;
-                case "weekly":
-                    query = "SELECT YEARWEEK(sale_date) AS week, SUM(total_price) AS total_sales FROM sales GROUP BY YEARWEEK(sale_date)";
-                    break;
-                case "monthly":
-                    query = "SELECT MONTH(sale_date) AS month, SUM(total_price) AS total_sales FROM sales GROUP BY MONTH(sale_date)";
-                    break;
+    switch (filter) {
+        case "daily":
+            query = "SELECT DATE_FORMAT(DATE(sale_date), '%b %d') AS day, SUM(total_price) AS total_sales " +
+                    "FROM sales WHERE DATE(sale_date) BETWEEN CURDATE() - INTERVAL 6 DAY AND CURDATE() " +  
+                    "GROUP BY DATE(sale_date) ORDER BY DATE(sale_date)";
+            break;
+        case "weekly":
+            query = "SELECT DATE_FORMAT(sale_date, 'Week %u, %Y') AS week, SUM(total_price) AS total_sales " +
+                    "FROM sales WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH " + 
+                    "GROUP BY YEARWEEK(sale_date) ORDER BY YEARWEEK(sale_date)";
+            break;
+        case "monthly":
+            query = "SELECT DATE_FORMAT(sale_date, '%b %Y') AS month, SUM(total_price) AS total_sales " +
+                    "FROM sales WHERE sale_date >= CURDATE() - INTERVAL 1 YEAR " + 
+                    "GROUP BY YEAR(sale_date), MONTH(sale_date) ORDER BY YEAR(sale_date), MONTH(sale_date)";
+            break;
+    }
+
+    try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+        ResultSet rs = pstmt.executeQuery();
+
+        if (!rs.isBeforeFirst()) {
+            System.out.println("No data returned from the query.");
+        }
+
+        // Clear dataset to avoid duplication of previous data
+        dataset.clear();
+
+        boolean todaySalesFound = false;
+
+        // Loop through each row of data returned from the query
+        while (rs.next()) {
+            String dateLabel = rs.getString(1);  // Formatted date string (e.g., "Jan 30")
+            double totalSales = rs.getDouble("total_sales");
+
+            // Debugging: Print out the date label and total sales
+            System.out.println("Date: " + dateLabel + ", Total Sales: ₱" + String.format("%,.2f", totalSales));
+
+            // If the result contains today's date, mark it as found
+            if (dateLabel.equalsIgnoreCase(todayFormatted)) {
+                todaySalesFound = true;
             }
 
-            try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-                ResultSet rs = pstmt.executeQuery();
+            // Add each date and corresponding sales amount to the dataset with the date as the row key
+            dataset.addValue(totalSales, dateLabel, "Total Sales");
 
-                // Check if data is available
-                if (!rs.isBeforeFirst()) {
-                    System.out.println("No data returned from the query.");
-                }
-
-                while (rs.next()) {
-                    String dateLabel = rs.getString(1);  // Day, Week, or Month depending on filter
-                    double totalSales = rs.getDouble("total_sales");
-                    dataset.addValue(totalSales, category, dateLabel);
-                    System.out.println("Date: " + dateLabel + ", Total Sales: " + totalSales); // Debug output
-                }
-
-                // Create the chart
-                JFreeChart chart = ChartFactory.createBarChart(
-                        "Sales Trend (" + filter + ")",
-                        "Date",
-                        "Total Sales",
-                        dataset
-                );
-
-                // Get the plot and renderer
-                CategoryPlot plot = chart.getCategoryPlot();
-                BarRenderer renderer = (BarRenderer) plot.getRenderer();
-
-                // Create and configure item label generator
-                StandardCategoryItemLabelGenerator itemLabelGenerator = new StandardCategoryItemLabelGenerator();
-                renderer.setDefaultItemLabelGenerator(itemLabelGenerator);
-
-                // Enable item labels
-                renderer.setDefaultItemLabelsVisible(true);
-
-                // Customize item label font and color
-                renderer.setDefaultItemLabelFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
-                renderer.setDefaultItemLabelPaint(java.awt.Color.BLACK);
-
-                // Update the chart panel
-                chartPanel.removeAll();
-                chartPanel.add(new ChartPanel(chart));
-                chartPanel.revalidate();
-                chartPanel.repaint();
-
-            } catch (SQLException e) {
-                e.printStackTrace();
+            // Debugging: Print the contents of the dataset after each addition
+            System.out.println("Current dataset contents: ");
+            for (int i = 0; i < dataset.getRowCount(); i++) {
+                System.out.println("Row " + i + ": " + dataset.getRowKey(i));
             }
         }
+
+        // Ensure a bar is added for today's sales (if not found from query)
+        if (!todaySalesFound) {
+            dataset.addValue(0, todayFormatted, "Total Sales");
+            System.out.println("No sales data for today. Adding bar for today with 0 sales.");
+        }
+
+        // Debugging: Print the number of entries in the dataset
+        System.out.println("Number of data entries in the dataset: " + dataset.getRowCount());
+
+        // Create the chart
+        JFreeChart chart = ChartFactory.createBarChart(
+                "Sales Trend (" + filter + ")",
+                "Date",
+                "Total Sales (₱)",
+                dataset
+        );
+
+        // Improve readability and fix bar rendering
+        CategoryPlot plot = chart.getCategoryPlot();
+        BarRenderer renderer = (BarRenderer) plot.getRenderer();
+        
+
+        // Add labels with ₱ symbol
+        StandardCategoryItemLabelGenerator labelGenerator = new StandardCategoryItemLabelGenerator("₱{2}", new DecimalFormat("#,###.00"));
+        renderer.setDefaultItemLabelGenerator(labelGenerator);
+        renderer.setDefaultItemLabelsVisible(true);
+        renderer.setDefaultItemLabelFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 12));
+        renderer.setDefaultItemLabelPaint(java.awt.Color.BLACK);
+
+        // Adjust bar width for better visibility
+        renderer.setMaximumBarWidth(0.15); // Slightly larger bar width for visibility
+
+        // Update the chart panel and ensure it refreshes properly
+        chartPanel.removeAll();
+        chartPanel.add(new ChartPanel(chart));
+        chartPanel.revalidate();
+        chartPanel.repaint();
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
         private void back() {
         
         dispose();

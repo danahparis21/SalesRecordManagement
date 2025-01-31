@@ -71,7 +71,7 @@ public class AdminDashboard extends JFrame {
 
     
     public void openDataAnalytics() {
-        
+       dispose();
        DataAnalytics analyticsWindow = new DataAnalytics();
        analyticsWindow.setVisible(true);
     }
