@@ -393,89 +393,91 @@ public class SalesRecord extends JFrame {
 
 
     private void loadSalesData() {
-    tableModel.setRowCount(0); 
+        tableModel.setRowCount(0); 
 
-    Connection conn = Database.connect();
-    if (conn == null) {
-        JOptionPane.showMessageDialog(this, "Database connection failed.");
-        return;
-    }
-
-    try {
-       
-        StringBuilder sql = new StringBuilder("SELECT s.id, s.product_id, p.name AS product_name, p.price AS product_price, s.quantity, s.total_price, s.sale_date, s.salesperson_id " +
-                                             "FROM sales s " +
-                                             "JOIN products p ON s.product_id = p.id " +
-                                             "WHERE 1=1");
-
-     
-        if (!productFilterField.getText().trim().isEmpty()) {
-            sql.append(" AND s.product_id = ?");
+        Connection conn = Database.connect();
+        if (conn == null) {
+            JOptionPane.showMessageDialog(this, "Database connection failed.");
+            return;
         }
 
+        try {
+            StringBuilder sql = new StringBuilder("SELECT s.id, s.product_id, p.name AS product_name, p.price AS product_price, s.quantity, s.total_price, s.sale_date, s.salesperson_id " +
+                                                 "FROM sales s " +
+                                                 "JOIN products p ON s.product_id = p.id " +
+                                                 "WHERE 1=1");
 
-        if (!salespersonFilterField.getText().trim().isEmpty()) {
-            sql.append(" AND s.salesperson_id = ?");
-        }
-
-
-        String selectedDateFilter = dateFilterComboBox.getSelectedItem().toString();
-        if (!selectedDateFilter.equals("All")) {
-            sql.append(" AND s.sale_date >= ? AND s.sale_date <= ?");
-        }
-
-        PreparedStatement stmt = conn.prepareStatement(sql.toString());
-        int paramIndex = 1;
-
-        
-        if (!productFilterField.getText().trim().isEmpty()) {
-            stmt.setInt(paramIndex++, Integer.parseInt(productFilterField.getText().trim()));
-        }
-
-        if (!salespersonFilterField.getText().trim().isEmpty()) {
-            stmt.setInt(paramIndex++, Integer.parseInt(salespersonFilterField.getText().trim()));
-        }
-
-        // Date filter 
-        if (!selectedDateFilter.equals("All")) {
-            LocalDate now = LocalDate.now();
-            LocalDate startDate = null, endDate = now;
-
-            switch (selectedDateFilter) {
-                case "Today":
-                    startDate = now;
-                    break;
-                case "This Week":
-                    startDate = now.minusDays(now.getDayOfWeek().getValue() - 1);
-                    break;
-                case "This Month":
-                    startDate = now.withDayOfMonth(1);
-                    break;
+            if (!productFilterField.getText().trim().isEmpty()) {
+                sql.append(" AND s.product_id = ?");
             }
 
-            stmt.setDate(paramIndex++, java.sql.Date.valueOf(startDate));
-            stmt.setDate(paramIndex++, java.sql.Date.valueOf(endDate));
-        }
+            if (!salespersonFilterField.getText().trim().isEmpty()) {
+                sql.append(" AND s.salesperson_id = ?");
+            }
 
-        ResultSet rs = stmt.executeQuery();
-        while (rs.next()) {
-           
-            tableModel.addRow(new Object[]{
-                rs.getInt("id"),                  // Sales ID
-                rs.getInt("product_id"),          // Product ID
-                rs.getString("product_name"),     // Product Name
-                rs.getInt("quantity"),            // Quantity Sold
-                rs.getDouble("total_price"),      // Total Price
-                rs.getDate("sale_date"),          // Sale Date
-                rs.getInt("salesperson_id"),      // Salesperson ID
-                rs.getDouble("product_price")     // Product Price
-            });
+            // Date filter
+            String selectedDateFilter = (String) dateFilterComboBox.getSelectedItem();
+            if (!selectedDateFilter.equals("All")) {
+                sql.append(" AND s.sale_date >= ? AND s.sale_date <= ?");
+            }
 
+            PreparedStatement stmt = conn.prepareStatement(sql.toString());
+            int paramIndex = 1;
+
+            // product filter 
+            if (!productFilterField.getText().trim().isEmpty()) {
+                stmt.setInt(paramIndex++, Integer.parseInt(productFilterField.getText().trim()));
+            }
+
+            // salesperson filter 
+            if (!salespersonFilterField.getText().trim().isEmpty()) {
+                stmt.setInt(paramIndex++, Integer.parseInt(salespersonFilterField.getText().trim()));
+            }
+
+
+            if (!selectedDateFilter.equals("All")) {
+                LocalDate today = LocalDate.now();
+                LocalDate startDate = null;
+                LocalDate endDate = null;
+
+                switch (selectedDateFilter) {
+                    case "Today":
+
+                        startDate = today;
+                        endDate = today; // Same day
+                        break;
+                    case "This Week":
+                        startDate = today.minusDays(today.getDayOfWeek().getValue() - 1); // Start of the week
+                        endDate = today.plusDays(7 - today.getDayOfWeek().getValue()); // End of the week
+                        break;
+                    case "This Month":
+                        startDate = today.withDayOfMonth(1); // Start of the month
+                        endDate = today.withDayOfMonth(today.lengthOfMonth()); // End of the month
+                        break;
+                }
+
+
+                stmt.setDate(paramIndex++, java.sql.Date.valueOf(startDate));
+                stmt.setDate(paramIndex++, java.sql.Date.valueOf(endDate));
+            }
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                tableModel.addRow(new Object[]{
+                    rs.getInt("id"),                  // Sales ID
+                    rs.getInt("product_id"),          // Product ID
+                    rs.getString("product_name"),     // Product Name
+                    rs.getInt("quantity"),            // Quantity Sold
+                    rs.getDouble("total_price"),      // Total Price
+                    rs.getDate("sale_date"),          // Sale Date
+                    rs.getInt("salesperson_id"),      // Salesperson ID
+                    rs.getDouble("product_price")     // Product Price
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-    } catch (SQLException e) {
-        e.printStackTrace();
     }
-}
 
     private void logout() {
         
