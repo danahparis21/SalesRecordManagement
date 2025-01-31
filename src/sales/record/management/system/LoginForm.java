@@ -11,7 +11,7 @@ public class LoginForm extends JFrame {
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JButton loginButton;
-    private String loggedInRole;  // This will store whether the user is admin or salesperson
+    private String loggedInRole;  
     private int loggedInUserID;   // Store the user's ID (for admin or salesperson)
 
     public LoginForm() {
@@ -29,9 +29,9 @@ public class LoginForm extends JFrame {
         getContentPane().setBackground(Color.WHITE);
 
        
-        JLabel titleLabel = new JLabel("Log IN");
+        JLabel titleLabel = new JLabel("Log In");
         titleLabel.setBounds(150, 20, 100, 30);
-        titleLabel.setFont(new Font("serif", Font.BOLD, 22));
+        titleLabel.setFont(new Font("Segeo UI", Font.BOLD, 22));
         add(titleLabel);
 
     

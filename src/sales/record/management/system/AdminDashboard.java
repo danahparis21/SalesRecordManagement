@@ -1,9 +1,11 @@
-
 package sales.record.management.system;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class AdminDashboard extends JFrame {
 
@@ -12,25 +14,33 @@ public class AdminDashboard extends JFrame {
     public AdminDashboard() {
      
         setTitle("Admin Dashboard");
-        setSize(600, 400);
+        setSize(1080, 608);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(null);
 
         getContentPane().setBackground(Color.WHITE);
         
-        productManagementButton = new JButton("Product Management");
-        productManagementButton.setBounds(200, 100, 200, 40);
-        add(productManagementButton);
+        // BACKGROUND IMAGE
+        ImageIcon i1 = new ImageIcon(ClassLoader.getSystemResource("icons/adminBG.png"));
+        if (i1.getImageLoadStatus() != MediaTracker.COMPLETE) {
+            System.out.println("Image failed to load!");
+        }
+        Image image = i1.getImage().getScaledInstance(1080, 608, Image.SCALE_SMOOTH);
+        i1 = new ImageIcon(image);
+        JLabel imageLabel = new JLabel(i1);
+        imageLabel.setBounds(0, 0, 1080, 608);
+        add(imageLabel);
+        
+        productManagementButton = createButton("Product Management", 400, 150, new Color(0, 83, 54));
+        imageLabel.add(productManagementButton);
 
+        dataAnalyticsButton = createButton("Data Analytics", 400, 250, new Color(0, 83, 54));
+        imageLabel.add(dataAnalyticsButton);
         
-        dataAnalyticsButton = new JButton("Data Analytics");
-        dataAnalyticsButton.setBounds(200, 150, 200, 40);
-        add(dataAnalyticsButton);
-        
-        logoutButton = new JButton("Log Out");
-        logoutButton.setBounds(200, 200, 200, 40);
-        add(logoutButton);
+      
+        logoutButton = createButton("Log Out", 400, 350, new Color(234, 67, 67)); // #ea4343 color
+        imageLabel.add(logoutButton);
 
         productManagementButton.addActionListener(new ActionListener() {
             @Override
@@ -61,15 +71,52 @@ public class AdminDashboard extends JFrame {
         new LoginForm().setVisible(true);  
     }
 
+    private JButton createButton(String text, int x, int y, Color backgroundColor) {
+        JButton button = new JButton(text);
+        button.setBounds(x, y, 300, 80);
+        button.setBackground(backgroundColor); 
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20)); 
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-   
+        // Hover Effect
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(backgroundColor.darker());
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(backgroundColor); 
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                button.setBackground(backgroundColor.darker().darker()); 
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                button.setBackground(backgroundColor.darker()); 
+            }
+        });
+
+      
+        button.setBorder(BorderFactory.createLineBorder(backgroundColor, 1, true));
+        button.setOpaque(true);
+
+        return button;
+    }
+
     public void openProductManagement() {
         ProductManagement productManagement = new ProductManagement();
         productManagement.setVisible(true);
         dispose();
     }
 
-    
     public void openDataAnalytics() {
        dispose();
        DataAnalytics analyticsWindow = new DataAnalytics();
